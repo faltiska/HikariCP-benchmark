@@ -35,12 +35,6 @@ import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
-//@State(Scope.Benchmark)
-//@Warmup(iterations=3, batchSize=1_000_000)
-//@Measurement(iterations=8, batchSize=1_000_000)
-//@BenchmarkMode(Mode.SingleShotTime)
-//@OutputTimeUnit(TimeUnit.NANOSECONDS)
-
 @State(Scope.Benchmark)
 @Warmup(iterations=3)
 @Measurement(iterations=8)

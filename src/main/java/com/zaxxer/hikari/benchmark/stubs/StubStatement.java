@@ -16,16 +16,13 @@
 
 package com.zaxxer.hikari.benchmark.stubs;
 
-import static java.lang.System.nanoTime;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import com.zaxxer.hikari.util.UtilityElf;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
-
-import com.zaxxer.hikari.util.UtilityElf;
 
 /**
  *
@@ -54,7 +51,7 @@ public class StubStatement implements Statement
    }
 
    /** {@inheritDoc} */
-   public boolean isWrapperFor(Class<?> iface) throws SQLException
+   public boolean isWrapperFor(Class<?> iface) 
    {
       return false;
    }
@@ -79,7 +76,7 @@ public class StubStatement implements Statement
    }
 
    /** {@inheritDoc} */
-   public void close() throws SQLException
+   public void close() 
    {
       closed = true;
    }
@@ -175,7 +172,7 @@ public class StubStatement implements Statement
    /** {@inheritDoc} */
    public int getFetchDirection() throws SQLException
    {
-      return 0;
+      return ResultSet.FETCH_FORWARD;
    }
 
    /** {@inheritDoc} */
@@ -192,13 +189,13 @@ public class StubStatement implements Statement
    /** {@inheritDoc} */
    public int getResultSetConcurrency() throws SQLException
    {
-      return 0;
+      return ResultSet.CONCUR_READ_ONLY;
    }
 
    /** {@inheritDoc} */
    public int getResultSetType() throws SQLException
    {
-      return 0;
+      return ResultSet.TYPE_FORWARD_ONLY;
    }
 
    /** {@inheritDoc} */
@@ -278,7 +275,7 @@ public class StubStatement implements Statement
    }
 
    /** {@inheritDoc} */
-   public boolean isClosed() throws SQLException
+   public boolean isClosed() 
    {
       return closed;
    }

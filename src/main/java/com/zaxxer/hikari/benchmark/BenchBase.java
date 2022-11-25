@@ -16,21 +16,18 @@
 
 package com.zaxxer.hikari.benchmark;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.Properties;
-import java.util.concurrent.Executors;
-
-import javax.sql.DataSource;
-
 import com.alibaba.druid.filter.stat.MergeStatFilter;
 import com.alibaba.druid.filter.stat.StatFilter;
 import com.alibaba.druid.pool.DruidDataSource;
+import com.mchange.v2.c3p0.ComboPooledDataSource;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import one.datasource.DataSourceImpl;
+import oracle.ucp.jdbc.PoolDataSource;
+import oracle.ucp.jdbc.PoolDataSourceFactory;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.tomcat.jdbc.pool.PoolProperties;
 import org.apache.tomcat.jdbc.pool.PooledConnection;
-import org.apache.tomcat.jdbc.pool.Validator;
 import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
@@ -40,18 +37,20 @@ import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.infra.BenchmarkParams;
 import org.vibur.dbcp.ViburDBCPDataSource;
 
-import com.mchange.v2.c3p0.ComboPooledDataSource;
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
-
-import one.datasource.DataSourceImpl;
+import javax.sql.DataSource;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.Properties;
+import java.util.concurrent.Executors;
 
 @State(Scope.Benchmark)
 public class BenchBase
 {
     protected static final int MIN_POOL_SIZE = 0;
+    public static final String USERNAME = "brettw";
+    public static final String PASSWORD = "";
 
-    @Param({ "hikari", "dbcp2", "tomcat", "c3p0", "vibur", "druid", "druid-stat", "druid-stat-merge" })
+    @Param({ "hikari", "dbcp2", "tomcat", "c3p0", "vibur", "druid", "druid-stat", "druid-stat-merge", "ucp" })
     public String pool;
 
     @Param({ "32" })
@@ -112,6 +111,9 @@ public class BenchBase
         case "druid-stat-merge":
             setupDruidStatMerge();
             break;
+        case "ucp":
+            setupUcp();
+            break;
         }
 
     }
@@ -152,6 +154,22 @@ public class BenchBase
         }
     }
 
+    private void setupUcp() {
+        try {
+            PoolDataSource pds = PoolDataSourceFactory.getPoolDataSource();
+            pds.setConnectionFactoryClassName("com.zaxxer.hikari.benchmark.stubs.StubDriver");
+            pds.setUser(USERNAME);
+            pds.setPassword(PASSWORD);
+            pds.setURL(jdbcUrl);
+            pds.setInitialPoolSize(MIN_POOL_SIZE);
+            pds.setMaxPoolSize(maxPoolSize);
+
+            DS = pds;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     protected void setupDruid() {
         DS = createDruid();
     }
@@ -187,8 +205,8 @@ public class BenchBase
         druid.setPoolPreparedStatements(true);
         druid.setDriverClassName("com.zaxxer.hikari.benchmark.stubs.StubDriver");
         druid.setUrl(jdbcUrl);
-        druid.setUsername("brettw");
-        druid.setPassword("");
+        druid.setUsername(USERNAME);
+        druid.setPassword(PASSWORD);
         druid.setValidationQuery("SELECT 1");
         druid.setTestOnBorrow(true);
         druid.setDefaultAutoCommit(false);
@@ -203,8 +221,8 @@ public class BenchBase
         PoolProperties props = new PoolProperties();
         props.setUrl(jdbcUrl);
         props.setDriverClassName("com.zaxxer.hikari.benchmark.stubs.StubDriver");
-        props.setUsername("brettw");
-        props.setPassword("");
+        props.setUsername(USERNAME);
+        props.setPassword(PASSWORD);
         props.setInitialSize(MIN_POOL_SIZE);
         props.setMinIdle(MIN_POOL_SIZE);
         props.setMaxIdle(maxPoolSize);
@@ -218,17 +236,13 @@ public class BenchBase
         props.setJdbcInterceptors("org.apache.tomcat.jdbc.pool.interceptor.ConnectionState"); //;org.apache.tomcat.jdbc.pool.interceptor.StatementFinalizer");
         props.setTestOnBorrow(true);
         props.setValidationInterval(1000);
-        props.setValidator(new Validator() {
-            @Override
-            public boolean validate(Connection connection, int validateAction)
+        props.setValidator((connection, validateAction) -> {
+            try {
+                return (validateAction != PooledConnection.VALIDATE_BORROW || connection.isValid(0));
+            }
+            catch (SQLException e)
             {
-                try {
-                    return (validateAction == PooledConnection.VALIDATE_BORROW ? connection.isValid(0) : true);
-                }
-                catch (SQLException e)
-                {
-                    return false;
-                }
+                return false;
             }
         });
 
@@ -239,8 +253,8 @@ public class BenchBase
     {
         org.apache.commons.dbcp.BasicDataSource ds = new org.apache.commons.dbcp.BasicDataSource();
         ds.setUrl(jdbcUrl);
-        ds.setUsername("brettw");
-        ds.setPassword("");
+        ds.setUsername(USERNAME);
+        ds.setPassword(PASSWORD);
         ds.setInitialSize(MIN_POOL_SIZE);
         ds.setMinIdle(MIN_POOL_SIZE);
         ds.setMaxIdle(maxPoolSize);
@@ -257,8 +271,8 @@ public class BenchBase
     {
         BasicDataSource ds = new BasicDataSource();
         ds.setUrl(jdbcUrl);
-        ds.setUsername("brettw");
-        ds.setPassword("");
+        ds.setUsername(USERNAME);
+        ds.setPassword(PASSWORD);
         ds.setInitialSize(MIN_POOL_SIZE);
         ds.setMinIdle(MIN_POOL_SIZE);
         ds.setMaxIdle(maxPoolSize);
@@ -279,8 +293,8 @@ public class BenchBase
     {
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(jdbcUrl);
-        config.setUsername("brettw");
-        config.setPassword("");
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
         config.setMinimumIdle(MIN_POOL_SIZE);
         config.setMaximumPoolSize(maxPoolSize);
         config.setConnectionTimeout(8000);
@@ -295,8 +309,8 @@ public class BenchBase
         {
             ComboPooledDataSource cpds = new ComboPooledDataSource();
             cpds.setJdbcUrl( jdbcUrl );
-            cpds.setUser("brettw");
-            cpds.setPassword("");
+            cpds.setUser(USERNAME);
+            cpds.setPassword(PASSWORD);
             cpds.setAcquireIncrement(1);
             cpds.setInitialPoolSize(MIN_POOL_SIZE);
             cpds.setMinPoolSize(MIN_POOL_SIZE);
@@ -304,7 +318,6 @@ public class BenchBase
             cpds.setCheckoutTimeout(8000);
             cpds.setLoginTimeout(8);
             cpds.setTestConnectionOnCheckout(true);
-            // cpds.setPreferredTestQuery("VALUES 1");
 
             DS = cpds;
         }
@@ -318,8 +331,8 @@ public class BenchBase
     {
         ViburDBCPDataSource vibur = new ViburDBCPDataSource();
         vibur.setJdbcUrl( jdbcUrl );
-        vibur.setUsername("brettw");
-        vibur.setPassword("");
+        vibur.setUsername(USERNAME);
+        vibur.setPassword(PASSWORD);
         vibur.setConnectionTimeoutInMs(5000);
         vibur.setValidateTimeoutInSeconds(3);
         vibur.setLoginTimeoutInSeconds(2);

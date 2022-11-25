@@ -1,9 +1,11 @@
 @echo off
 setlocal
 
-set JAVA_OPTIONS=-server -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -Xms1096m -Xmx1096m
+set JAVA_OPTIONS=-server -XX:-RestrictContended -Xms1096m -Xmx1096m
 
-call mvn clean package
+if "%1" == "clean" (
+    call mvn clean package
+)
 
 set JMH_THREADS=-t 8
 if "%2" == "-t" (
@@ -23,6 +25,3 @@ if "medium" == "%command%" (
 if "long" == "%command%" (
    java -jar target\microbenchmarks.jar -jvmArgs "%JAVA_OPTIONS%" -wi 5 -f 20 -i 15 %JMH_THREADS% %2 %3 %4 %5 %6 %7
 )
-
-
-rem java -jar ./target/microbenchmarks.jar -jvmArgs "$JAVA_OPTIONS" -wi 3 -i 15 -t 8 $1 $2 $3 $4 $5 $6 $7 $8 $9
