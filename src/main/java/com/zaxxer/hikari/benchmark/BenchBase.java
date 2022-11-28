@@ -46,11 +46,17 @@ import java.util.concurrent.Executors;
 @State(Scope.Benchmark)
 public class BenchBase
 {
-    protected static final int MIN_POOL_SIZE = 0;
+    public static final String DRIVER_CLASS_NAME = "com.zaxxer.hikari.benchmark.stubs.StubDriver";
     public static final String USERNAME = "brettw";
     public static final String PASSWORD = "";
-
-    @Param({ "hikari", "dbcp2", "tomcat", "c3p0", "vibur", "druid", "druid-stat", "druid-stat-merge", "ucp" })
+    public static final int CONNECT_TIMEOUT = 8000;
+    public  static final boolean VALIDATE_ON_BORROW = true;
+    public static final String VALIDATION_QUERY = "SELECT 1";
+    public static final int VALIDATION_INTERVAL = 1000;
+    public static final int MIN_POOL_SIZE = 0;
+    
+    //    @Param({ "hikari", "dbcp2", "tomcat", "c3p0", "vibur", "druid", "druid-stat", "druid-stat-merge", "ucp" })
+    @Param({ "hikari", "ucp" })
     public String pool;
 
     @Param({ "32" })
@@ -66,7 +72,7 @@ public class BenchBase
     {
         try
         {
-            Class.forName("com.zaxxer.hikari.benchmark.stubs.StubDriver");
+            Class.forName(DRIVER_CLASS_NAME);
             System.err.printf("Using driver (%s): %s", jdbcUrl, DriverManager.getDriver(jdbcUrl));
         }
         catch (Exception e)
@@ -115,7 +121,6 @@ public class BenchBase
             setupUcp();
             break;
         }
-
     }
 
     @TearDown(Level.Trial)
@@ -157,12 +162,15 @@ public class BenchBase
     private void setupUcp() {
         try {
             PoolDataSource pds = PoolDataSourceFactory.getPoolDataSource();
-            pds.setConnectionFactoryClassName("com.zaxxer.hikari.benchmark.stubs.StubDriver");
+            pds.setConnectionFactoryClassName(DRIVER_CLASS_NAME);
             pds.setUser(USERNAME);
             pds.setPassword(PASSWORD);
             pds.setURL(jdbcUrl);
             pds.setInitialPoolSize(MIN_POOL_SIZE);
             pds.setMaxPoolSize(maxPoolSize);
+            pds.setValidateConnectionOnBorrow(VALIDATE_ON_BORROW);
+            pds.setSQLForValidateConnection(VALIDATION_QUERY);
+            pds.setSecondsToTrustIdleConnection(VALIDATION_INTERVAL);
 
             DS = pds;
         } catch (Exception e) {
@@ -203,14 +211,14 @@ public class BenchBase
         druid.setMaxActive(maxPoolSize);
         druid.setMinIdle(MIN_POOL_SIZE);
         druid.setPoolPreparedStatements(true);
-        druid.setDriverClassName("com.zaxxer.hikari.benchmark.stubs.StubDriver");
+        druid.setDriverClassName(DRIVER_CLASS_NAME);
         druid.setUrl(jdbcUrl);
         druid.setUsername(USERNAME);
         druid.setPassword(PASSWORD);
-        druid.setValidationQuery("SELECT 1");
-        druid.setTestOnBorrow(true);
+        druid.setValidationQuery(VALIDATION_QUERY);
+        druid.setTestOnBorrow(VALIDATE_ON_BORROW);
         druid.setDefaultAutoCommit(false);
-        druid.setMaxWait(8000);
+        druid.setMaxWait(CONNECT_TIMEOUT);
         druid.setUseUnfairLock(true);
 
         return druid;
@@ -220,22 +228,22 @@ public class BenchBase
     {
         PoolProperties props = new PoolProperties();
         props.setUrl(jdbcUrl);
-        props.setDriverClassName("com.zaxxer.hikari.benchmark.stubs.StubDriver");
+        props.setDriverClassName(DRIVER_CLASS_NAME);
         props.setUsername(USERNAME);
         props.setPassword(PASSWORD);
         props.setInitialSize(MIN_POOL_SIZE);
         props.setMinIdle(MIN_POOL_SIZE);
         props.setMaxIdle(maxPoolSize);
         props.setMaxActive(maxPoolSize);
-        props.setMaxWait(8000);
+        props.setMaxWait(CONNECT_TIMEOUT);
 
         props.setDefaultAutoCommit(false);
 
         props.setRollbackOnReturn(true);
         props.setUseDisposableConnectionFacade(true);
-        props.setJdbcInterceptors("org.apache.tomcat.jdbc.pool.interceptor.ConnectionState"); //;org.apache.tomcat.jdbc.pool.interceptor.StatementFinalizer");
-        props.setTestOnBorrow(true);
-        props.setValidationInterval(1000);
+        props.setJdbcInterceptors("org.apache.tomcat.jdbc.pool.interceptor.ConnectionState"); 
+        props.setTestOnBorrow(VALIDATE_ON_BORROW);
+        props.setValidationInterval(VALIDATION_INTERVAL);
         props.setValidator((connection, validateAction) -> {
             try {
                 return (validateAction != PooledConnection.VALIDATE_BORROW || connection.isValid(0));
@@ -261,8 +269,8 @@ public class BenchBase
         ds.setMaxActive(maxPoolSize);
 
         ds.setDefaultAutoCommit(false);
-        ds.setTestOnBorrow(true);
-        ds.setValidationQuery("SELECT 1");
+        ds.setTestOnBorrow(VALIDATE_ON_BORROW);
+        ds.setValidationQuery(VALIDATION_QUERY);
 
         DS = ds;
     }
@@ -277,12 +285,12 @@ public class BenchBase
         ds.setMinIdle(MIN_POOL_SIZE);
         ds.setMaxIdle(maxPoolSize);
         ds.setMaxTotal(maxPoolSize);
-        ds.setMaxWaitMillis(8000);
+        ds.setMaxWaitMillis(CONNECT_TIMEOUT);
 
         ds.setDefaultAutoCommit(false);
         ds.setRollbackOnReturn(true);
         ds.setEnableAutoCommitOnReturn(false);
-        ds.setTestOnBorrow(true);
+        ds.setTestOnBorrow(VALIDATE_ON_BORROW);
         ds.setCacheState(true);
         ds.setFastFailValidation(true);
 
@@ -297,7 +305,7 @@ public class BenchBase
         config.setPassword(PASSWORD);
         config.setMinimumIdle(MIN_POOL_SIZE);
         config.setMaximumPoolSize(maxPoolSize);
-        config.setConnectionTimeout(8000);
+        config.setConnectionTimeout(CONNECT_TIMEOUT);
         config.setAutoCommit(false);
 
         DS = new HikariDataSource(config);
@@ -315,9 +323,9 @@ public class BenchBase
             cpds.setInitialPoolSize(MIN_POOL_SIZE);
             cpds.setMinPoolSize(MIN_POOL_SIZE);
             cpds.setMaxPoolSize(maxPoolSize);
-            cpds.setCheckoutTimeout(8000);
+            cpds.setCheckoutTimeout(CONNECT_TIMEOUT);
             cpds.setLoginTimeout(8);
-            cpds.setTestConnectionOnCheckout(true);
+            cpds.setTestConnectionOnCheckout(VALIDATE_ON_BORROW);
 
             DS = cpds;
         }
@@ -333,8 +341,8 @@ public class BenchBase
         vibur.setJdbcUrl( jdbcUrl );
         vibur.setUsername(USERNAME);
         vibur.setPassword(PASSWORD);
-        vibur.setConnectionTimeoutInMs(5000);
-        vibur.setValidateTimeoutInSeconds(3);
+        vibur.setConnectionTimeoutInMs(CONNECT_TIMEOUT);
+        vibur.setValidateTimeoutInSeconds(VALIDATION_INTERVAL);
         vibur.setLoginTimeoutInSeconds(2);
         vibur.setPoolInitialSize(MIN_POOL_SIZE);
         vibur.setPoolMaxSize(maxPoolSize);
@@ -354,7 +362,7 @@ public class BenchBase
     {
         Properties props = new Properties();
         props.put("url", jdbcUrl);
-        props.put("driver", "com.zaxxer.hikari.benchmark.stubs.StubDriver");
+        props.put("driver", DRIVER_CLASS_NAME);
 
         DS = new DataSourceImpl("one", props);
     }
