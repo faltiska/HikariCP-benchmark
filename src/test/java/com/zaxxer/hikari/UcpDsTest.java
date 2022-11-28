@@ -16,7 +16,6 @@ public class UcpDsTest {
         pds.setInitialPoolSize(0);
         pds.setMaxPoolSize(32);
         pds.setValidateConnectionOnBorrow(true);
-        pds.setSQLForValidateConnection("SELECT 1");
         pds.setSecondsToTrustIdleConnection(1000);
 
         Assert.assertNotNull(pds.getConnection());

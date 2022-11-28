@@ -17,7 +17,7 @@ if "%2" == "-t" (
 set command=%~1
 
 if "quick" == "%command%" (
-   java -jar target\microbenchmarks.jar -jvmArgs "%JAVA_OPTIONS%" -wi 3 -i 8 %JMH_THREADS% -f 2 %2 %3 %4 %5 %6 %7
+   java -jar target\microbenchmarks.jar -jvmArgs "%JAVA_OPTIONS%" -wi 3 -f 2 -i 8 %JMH_THREADS% %2 %3 %4 %5 %6 %7
 )
 if "medium" == "%command%" (
    java -jar target\microbenchmarks.jar -jvmArgs "%JAVA_OPTIONS%" -wi 3 -f 8 -i 6 %JMH_THREADS% %2 %3 %4 %5 %6 %7

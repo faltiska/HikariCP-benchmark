@@ -55,8 +55,7 @@ public class BenchBase
     public static final int VALIDATION_INTERVAL = 1000;
     public static final int MIN_POOL_SIZE = 0;
     
-    //    @Param({ "hikari", "dbcp2", "tomcat", "c3p0", "vibur", "druid", "druid-stat", "druid-stat-merge", "ucp" })
-    @Param({ "hikari", "ucp" })
+    @Param({ "hikari", "dbcp2", "tomcat", "c3p0", "vibur", "druid", "druid-stat", "druid-stat-merge", "ucp" })
     public String pool;
 
     @Param({ "32" })
@@ -73,7 +72,7 @@ public class BenchBase
         try
         {
             Class.forName(DRIVER_CLASS_NAME);
-            System.err.printf("Using driver (%s): %s", jdbcUrl, DriverManager.getDriver(jdbcUrl));
+            System.err.printf("Using driver (%s): %s\n", jdbcUrl, DriverManager.getDriver(jdbcUrl));
         }
         catch (Exception e)
         {
@@ -81,7 +80,7 @@ public class BenchBase
         }
 
         if (this.getClass().getName().contains("Statement")) {
-            System.err.println("# Overriding maxPoolSize paramter for StatementBench: maxPoolSize=" + params.getThreads());
+            System.err.println("# Overriding maxPoolSize parameter for StatementBench: maxPoolSize=" + params.getThreads());
             maxPoolSize = params.getThreads();
         }
 
@@ -169,7 +168,6 @@ public class BenchBase
             pds.setInitialPoolSize(MIN_POOL_SIZE);
             pds.setMaxPoolSize(maxPoolSize);
             pds.setValidateConnectionOnBorrow(VALIDATE_ON_BORROW);
-            pds.setSQLForValidateConnection(VALIDATION_QUERY);
             pds.setSecondsToTrustIdleConnection(VALIDATION_INTERVAL);
 
             DS = pds;
